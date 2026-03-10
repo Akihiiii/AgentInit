@@ -10,8 +10,8 @@ import aiohttp
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import random
-MINE_BASE_URL = ""
-MINE_API_KEYS = ""
+MINE_BASE_URL = "http://10.1.1.158:11438/v1"
+MINE_API_KEYS = "123"
 MODEL_INFOS = {
     "qwen/qwen-2.5-72b-instruct": {
         "name": "qwen/qwen-2.5-72b-instruct", 
@@ -24,33 +24,54 @@ MODEL_INFOS = {
         "json_output": False,  
         "function_calling": False  
     },
-    "deepseek/deepseek-v3/community": {
+    "DeepSeek-V3.2-Instruct": {
         "name": "deepseek/deepseek-v3/community",
         "parameters": {
-            "max_tokens": 1024,
+            "max_tokens": 2048,
         },
         "family": "gpt-4o",
         "functions": [],
         "vision": False,
         "json_output": False,
-        "function_calling": False
+        "function_calling": False,
+        "structured_output": False
     },
+    "Qwen3-8B": {
+        "name": "qwen/qwen3-8b",
+        "parameters": {"max_tokens": 4096},  # Qwen3 支持更长输出
+        "family": "gpt-4o",
+        "functions": [],
+        "vision": False,
+        "json_output": True,        # Qwen3 支持 JSON 模式
+        "function_calling": True,    # Qwen3 支持工具调用
+        "structured_output": False   # Qwen3 支持结构化输出
+    }
 }
 class RetryableOpenAIClient():
     def __init__(self, model, base_url, api_key, model_info):
         self.model = model
         self.base_url = base_url
         self.api_key = api_key
+        self.extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
         self.model_info = model_info
     @retry(stop=stop_after_attempt(10),wait=wait_exponential(max=10))
     async def create(self, *args, **kwargs):
         
         new_client = OpenAIChatCompletionClient(
             model=self.model,
-            api_key=random.choice(MINE_API_KEYS),
+            api_key=self.api_key,
             base_url=self.base_url,
             model_info=self.model_info
         )
+        # --- THE FIX ---
+        # Ensure extra_create_args exists in the kwargs meant for Autogen
+        if "extra_create_args" not in kwargs:
+            kwargs["extra_create_args"] = {}
+
+        # Inject the extra_body into extra_create_args.
+        # Autogen will unpack this and pass extra_body directly to the OpenAI SDK.
+        kwargs["extra_create_args"]["extra_body"] = self.extra_body
+
         return await new_client.create(*args, **kwargs)
 def is_valid_autogen_name(name: str) -> bool:
     return bool(re.fullmatch(r'^[a-zA-Z0-9_-]+$', name))
@@ -64,7 +85,7 @@ async def run_team_chat(task: str, llm_name: str,roles:dict, domain) -> str:
     model_client = RetryableOpenAIClient(
         model=llm_name,
         base_url=MINE_BASE_URL,
-        api_key=random.choice(MINE_API_KEYS),
+        api_key=MINE_API_KEYS,
         model_info=model_info
     )
 
@@ -111,7 +132,7 @@ async def run_team_chat(task: str, llm_name: str,roles:dict, domain) -> str:
             model_client=RetryableOpenAIClient(
                 model=llm_name,
                 base_url=MINE_BASE_URL,
-                api_key=random.choice(MINE_API_KEYS),
+                api_key=MINE_API_KEYS,
                 model_info=model_info
                 ),
             system_message=DECISION_MAKER_PROMPTS[domain],
@@ -127,7 +148,7 @@ async def run_team_chat(task: str, llm_name: str,roles:dict, domain) -> str:
             model_client=RetryableOpenAIClient(
                 model=llm_name,
                 base_url=MINE_BASE_URL,
-                api_key=random.choice(MINE_API_KEYS),
+                api_key=MINE_API_KEYS,
                 model_info=model_info
                 ),
             system_message=system_prompt.strip(),
@@ -140,5 +161,5 @@ async def run_team_chat(task: str, llm_name: str,roles:dict, domain) -> str:
     result = await team.run(task=task)
     return result.messages[-1].content
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())

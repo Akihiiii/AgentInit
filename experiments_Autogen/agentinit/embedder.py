@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from typing import List, Union
 
 class Embedder:
-    def __init__(self, model_path: str = ''):
+    def __init__(self, model_path: str = '/Users/xiefuxuan/Documents/GitHub/AgentInit/model/Qwen3-embedding-0.6B'):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)

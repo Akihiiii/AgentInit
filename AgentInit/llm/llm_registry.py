@@ -10,7 +10,7 @@ class LLMRegistry:
     @classmethod
     def register(cls, *args, **kwargs):
         return cls.registry.register(*args, **kwargs)
-    
+
     @classmethod
     def keys(cls):
         return cls.registry.keys()
@@ -20,9 +20,12 @@ class LLMRegistry:
         if model_name is None or model_name=="":
             model_name = "gpt-4o"
 
-        if 'Llama' in model_name or 'Qwen' in model_name or 'llama' in model_name or 'qwen' in model_name:
+        if 'Llama' in model_name or 'llama' in model_name:
             model = cls.registry.get('llama', model_name)
-        elif 'deepseek' in model_name:
+        elif 'Qwen' in model_name or 'qwen' in model_name:
+            # 新增 Qwen 注册器
+            model = cls.registry.get('qwen', model_name)
+        elif 'deepseek' or 'DeepSeek' in model_name:
             model = cls.registry.get('deepseek', model_name)
         elif model_name == 'mock':
             model = cls.registry.get(model_name)

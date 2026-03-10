@@ -89,6 +89,20 @@ def cost_count_deepseek(prompt, response, model):
     # print(f"Prompt Tokens: {prompt_len}, Completion Tokens: {completion_len}")
     return price, prompt_len, completion_len
 
+
+def cost_count_qwen(prompt_len: int, completion_len: int, model: str):
+    """
+    直接接收 Token 数量，免去本地 Tokenizer 分词的性能开销。
+    """
+    price: float = 0.0
+
+    Cost.instance().value += price
+    PromptTokens.instance().value += prompt_len
+    CompletionTokens.instance().value += completion_len
+
+    # print(f"Qwen Model - Prompt Tokens: {prompt_len}, Completion Tokens: {completion_len}, Cost: {price}")
+    return price, prompt_len, completion_len
+
 OPENAI_MODEL_INFO ={
     "gpt-4": {
         "current_recommended": "gpt-4-1106-preview",
