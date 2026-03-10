@@ -15,12 +15,14 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 from AgentInit.utils.const import AgentInit_ROOT
 from AgentInit.graph.graph import Graph
-from example.accuracy import Accuracy
+from accuracy import Accuracy
 from AgentInit.utils.globals import Cost, PromptTokens, CompletionTokens
 from tqdm import tqdm
 import asyncio
 import time
 import copy
+import random
+
 from tenacity import retry, wait_random_exponential, stop_after_attempt, wait_fixed
 @retry(wait=wait_fixed(10), stop=stop_after_attempt(3))
 async def process_record(record, dataset, graph, args, auto, num_rounds,mode):

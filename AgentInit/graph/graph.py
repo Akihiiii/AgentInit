@@ -445,7 +445,7 @@ class Graph(ABC):
                 selected_index = torch.multinomial(p, num_samples=1, replacement=False)
                 # selected_index = list(self.nodes).index(min_node)
                 # selected_index = 1
-                for i in range(len(agent_names)):
+                for i in range(len(self.agent_names)):
                     if i==selected_index:
                         log_probs_skip += 4.0*loss_t_list[i]
                     else:
@@ -585,7 +585,7 @@ class Graph(ABC):
         for i in range(len(spatial_matrix_train)):
             min = 100
             min_node = -1
-            for j in range(len(agent_names)):
+            for j in range(len(self.agent_names)):
                 sum = torch.sum(spatial_matrix_train[i][j,:]).item() + torch.sum(spatial_matrix_train[i][:,j]).item()
                 # if i >= 1:
                 #     sum += torch.sum(temporal_matrix_train[i-1][j,:]).item() + torch.sum(temporal_matrix_train[i-1][:,j]).item()
@@ -596,12 +596,12 @@ class Graph(ABC):
                     min_node = j
             # min_node=random.randint(0, 4)
             self.skip_nodes.append(min_node)
-            for k in range(len(agent_names)):
+            for k in range(len(self.agent_names)):
                 self.spatial_masks[i][min_node*5+k]=0
                 self.spatial_masks[i][k*5+min_node]=0
             if i > 0:
-                for k in range(len(agent_names)):
+                for k in range(len(self.agent_names)):
                     self.temporal_masks[i-1][k*5+min_node]=0
             if i < len(spatial_matrix_train) - 1:
-                for k in range(len(agent_names)):
+                for k in range(len(self.agent_names)):
                     self.temporal_masks[i][min_node*5+k]=0

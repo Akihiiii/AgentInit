@@ -7,10 +7,9 @@ from typing import Union, Literal, List
 import argparse
 import random
 
-from AgentInit.graph.graph import Graph
 from datasets.mmlu_dataset import MMLUDataset
 from datasets.MMLU.download import download
-from experiments_Autogen.train_mmlu import train
+# from experiments_Autogen.train_mmlu import train
 from experiments_Autogen.evaluate_mmlu import evaluate
 from AgentInit.utils.const import AgentInit_ROOT
 from AgentInit.utils.globals import PromptTokens, CompletionTokens

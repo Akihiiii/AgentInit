@@ -59,7 +59,27 @@ async def main():
 
     total_solved, total_executed = (0, 0)
 
-   
+    # 断点：定义 checkpoint 文件路径
+    result_dir = Path(f"{AgentInit_ROOT}/result/humaneval")
+    result_dir.mkdir(parents=True, exist_ok=True)
+    safe_model_name = args.llm_name.replace("/", "_")
+    checkpoint_file = result_dir / f"checkpoint_{safe_model_name}_{args.domain}.jsonl"
+
+    # 断点：启动时读取 checkpoint，恢复进度
+    processed_count = 0
+    if checkpoint_file.exists():
+        with open(checkpoint_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    item = json.loads(line)
+                    total_solved += int(item["Solved"])
+                    total_executed += 1
+                    processed_count += 1
+        if processed_count > 0:
+            accuracy = total_solved / total_executed
+            print(f"Checkpoint found! Restored {processed_count} records. "
+                  f"total_solved={total_solved}, accuracy={accuracy:.4f}")
+
     @retry(wait=wait_fixed(10), stop=stop_after_attempt(5))
     async def process_record(record, llm_name, mode):
         question = record["prompt"]
@@ -72,35 +92,52 @@ async def main():
         response = await run_team_chat(question, llm_name, roles,args.domain)
         return response
 
+    # 动态计算，适配任何数据集大小
+    total = len(dataset)
+    batch = args.batch_size
+    num_batches = (total + batch - 1) // batch  # 向上取整
 
-    for i_batch in range(4,17):
-        print(f"Batch {i_batch}",80*'-')
+    # 断点：从上次中断的 batch 开始
+    start_batch = processed_count // batch
+
+    accuracy = total_solved / total_executed if total_executed > 0 else 0.0
+
+    for i_batch in range(start_batch, num_batches):
+        print(f"Batch {i_batch}", 80*'-')
         start_ts = time.time()
-        answer_log_probs = []
-        tests = []
-        # add_losses = []        
-        current_batch = dataloader(dataset,10,i_batch)
-        if current_batch is None:
+
+        current_batch = dataloader(dataset, args.batch_size, i_batch)
+        if not current_batch:
             print("No more data available.")
             break
-        
-        for i_record, record in enumerate(current_batch):
-            test = record["test"]
-            tests.append(test)
-            answer_log_probs.append(asyncio.create_task(process_record(record,args.llm_name,args.mode)))
-            
-        raw_results = await asyncio.gather(*answer_log_probs)
-        
-        # for task, answer, log_prob, add_loss, test in zip(current_batch, raw_answers, log_probs, add_losses, tests):
-        for task, answer, test in zip(current_batch, raw_results, tests):
+
+        # 断点：跳过本 batch 内已处理的记录
+        batch_start_idx = i_batch * batch
+        records_to_process = []
+        tests_to_process = []
+        for j, record in enumerate(current_batch):
+            global_idx = batch_start_idx + j
+            if global_idx < processed_count:
+                continue
+            records_to_process.append(record)
+            tests_to_process.append(record["test"])
+
+        if not records_to_process:
+            continue
+
+        tasks = [asyncio.create_task(process_record(r, args.llm_name, args.mode))
+                 for r in records_to_process]
+        raw_results = await asyncio.gather(*tasks)
+
+        for task_record, answer, test in zip(records_to_process, raw_results, tests_to_process):
             answer = answer.lstrip("```python\n").rstrip("\n```")
             is_solved, _, _ = PyExecutor().execute(answer, [test], timeout=100)
             total_solved = total_solved + is_solved
             total_executed = total_executed + 1
-            accuracy = total_solved/ total_executed
+            accuracy = total_solved / total_executed
 
             updated_item = {
-                "Question": task,
+                "Question": task_record,
                 "Tests": test,
                 "Attempt answer": answer,
                 "Solved": is_solved,
@@ -109,7 +146,10 @@ async def main():
                 "Total executed": total_executed,
                 "Accuracy": accuracy
             }
-        
+
+            # 断点：将每条结果追加写入 checkpoint 文件
+            with open(checkpoint_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(updated_item, ensure_ascii=False) + '\n')
 
         print(f"Batch time {time.time() - start_ts:.3f}")
         print(f"Accuracy: {accuracy}")

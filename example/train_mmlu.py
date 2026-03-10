@@ -10,7 +10,7 @@ import copy
 import random
 
 from AgentInit.graph.graph import Graph
-from example.accuracy import Accuracy
+from accuracy import Accuracy
 from AgentInit.utils.globals import Cost, PromptTokens, CompletionTokens
 from AgentInit.utils.utils import nuclear_norm,frobenius_norm
 

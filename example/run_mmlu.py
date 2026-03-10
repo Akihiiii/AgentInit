@@ -10,8 +10,8 @@ import random
 from AgentInit.graph.graph import Graph
 from datasets.mmlu_dataset import MMLUDataset
 from datasets.MMLU.download import download
-from example.train_mmlu import train
-from example.evaluate_mmlu import evaluate
+from train_mmlu import train
+from evaluate_mmlu import evaluate
 from AgentInit.utils.const import AgentInit_ROOT
 from AgentInit.utils.globals import PromptTokens, CompletionTokens
 from AgentInit.agentinit.manager import Manager

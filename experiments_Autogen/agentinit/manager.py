@@ -77,7 +77,7 @@ class Manager():
         # print(score)
         return -score
 
-    @retry(wait=wait_fixed(10), stop=stop_after_attempt(5))
+    @retry(wait=wait_fixed(50), stop=stop_after_attempt(2))
     async def _act(self, question):
         roles_plan, suggestions_roles, suggestions_plan = '', '', ''
         suggestions, num_steps = '', 2
